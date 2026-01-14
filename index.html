@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HFED Energy Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="controls-row">
+            <div class="control-group">
+                <label for="province-select">Province/territoire</label>
+                <select id="province-select">
+                    <option value="Terre-Neuve">Terre-Neuve</option>
+                    <option value="Île-du-Prince-Édouard">Île-du-Prince-Édouard</option>
+                    <option value="Nouvelle-Écosse">Nouvelle-Écosse</option>
+                    <option value="Nouveau-Brunswick">Nouveau-Brunswick</option>
+                    <option value="Québec">Québec</option>
+                    <option value="Ontario">Ontario</option>
+                    <option value="Saskatchewan">Saskatchewan</option>
+                    <option value="Alberta">Alberta</option>
+                    <option value="Colombie-Britannique">Colombie-Britannique</option>
+                    <option value="Yukon">Yukon</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label for="energy-var-select">Variable d'énergie</label>
+                <select id="energy-var-select"></select>
+            </div>
+
+            <div class="control-group" id="counterpart-area-group" style="display: none;">
+                <label for="counterpart-area-select">Zone de contrepartie</label>
+                <select id="counterpart-area-select"></select>
+            </div>
+
+            <div class="control-group">
+                <label for="start-date">Date de début</label>
+                <input type="date" id="start-date">
+            </div>
+
+            <div class="control-group">
+                <label for="end-date">Date de fin</label>
+                <input type="date" id="end-date">
+            </div>
+
+            <div class="control-group">
+                <button id="update-btn" class="btn-primary">
+                    <span>🔄</span> Mettre à jour la période
+                </button>
+            </div>
+
+            <div class="control-group">
+                <button id="download-btn" class="btn-primary">
+                    <span>⬇️</span> Télécharger les données
+                </button>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-btn active" data-tab="chart">Graphique</button>
+            <button class="tab-btn" data-tab="table">Tableau de données</button>
+            <button class="tab-btn" data-tab="api">IPA</button>
+        </div>
+
+        <div class="tab-content">
+            <div id="chart-tab" class="tab-pane active">
+                <div id="chart-container"></div>
+                <div id="loading-spinner" class="spinner" style="display: none;"></div>
+            </div>
+
+            <div id="table-tab" class="tab-pane">
+                <div id="table-container"></div>
+            </div>
+
+            <div id="api-tab" class="tab-pane">
+                <pre id="api-urls"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
