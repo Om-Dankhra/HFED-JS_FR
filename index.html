@@ -6,6 +6,9 @@
     <title>HFED Energy Dashboard</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/fr.js"></script>
 </head>
 <body>
     <div class="container">
@@ -37,14 +40,19 @@
             </div>
 
             <div class="control-group">
-                <label for="start-date">Date de début</label>
-                <input type="date" id="start-date">
-            </div>
+    <label for="start-date">Date de début</label>
+    <div class="flatpickr-wrapper" id="start-date-wrapper">
+        <input type="text" id="start-date" class="flatpickr-input" readonly data-input>
+    </div>
+</div>
 
-            <div class="control-group">
-                <label for="end-date">Date de fin</label>
-                <input type="date" id="end-date">
-            </div>
+<div class="control-group">
+    <label for="end-date">Date de fin</label>
+    <div class="flatpickr-wrapper" id="end-date-wrapper">
+        <input type="text" id="end-date" class="flatpickr-input" readonly data-input>
+    </div>
+</div>
+
 
             <div class="control-group">
                 <button id="update-btn" class="btn-primary">

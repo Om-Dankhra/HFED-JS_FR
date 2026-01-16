@@ -1,5 +1,5 @@
 // =============================================================================
-// CANADIAN HIGH-FREQUENCY ELECTRICITY DATA (HFED) ENGLISH
+// CANADIAN HIGH-FREQUENCY ELECTRICITY DATA (HFED) FRENCH
 // =============================================================================
 
 // ## API CONFIGURATION
@@ -213,6 +213,47 @@ const chartContainer = document.getElementById('chart-container');
 const tableContainer = document.getElementById('table-container');
 const apiUrlsContainer = document.getElementById('api-urls');
 const loadingSpinner = document.getElementById('loading-spinner');
+
+let startDatePicker, endDatePicker;
+
+// Init Flatpickr after DOM ready
+function initDatePickers() {
+    startDatePicker = flatpickr("#start-date", {
+        locale: "fr",
+        allowInput: false,
+        minDate: null,  // Will be set dynamically
+        maxDate: "today",
+        onChange: function(selectedDates, dateStr) {
+            startDateInput.value = dateStr;
+            // Sync end date min to start date
+            if (endDatePicker && selectedDates[0]) {
+                endDatePicker.set('minDate', selectedDates[0]);
+            }
+        },
+        onReady: function(selectedDates, dateStr, instance) {
+            startDateInput.value = dateStr || formatDate(getPast90Days()[0]);
+        }
+    });
+
+    endDatePicker = flatpickr("#end-date", {
+        locale: "fr",
+        allowInput: false,
+        minDate: null,
+        maxDate: "today",
+        onChange: function(selectedDates, dateStr) {
+            endDateInput.value = dateStr;
+        }
+    });
+}
+
+// Call in your existing DOMContentLoaded
+document.addEventListener('DOMContentLoaded', function() {
+    updateEnergyVarSelect();
+    updateDateInputs();
+    initDatePickers();  // Add this line
+    loadData();
+});
+
 
 // =============================================================================
 // ## UTILITY/HELPER FUNCTIONS
@@ -675,6 +716,25 @@ function renderChart(data, province, energyVar) {
     }
     
     const energyVarLabel = ENERGY_VARS[province].find(v => v.value === energyVar)?.label || energyVar;
+
+    // Returns French preposition for "dans/en/au Québec" style phrasing
+    function getProvincePreposition(province) {
+    const prepositionMap = {
+        "Terre-Neuve": "à",
+        "Île-du-Prince-Édouard": "à",
+        "Nouvelle-Écosse": "en",
+        "Nouveau-Brunswick": "au",
+        "Québec": "au",
+        "Ontario": "en",
+        "Alberta": "en",
+        "Saskatchewan": "en",
+        "Colombie-Britannique": "en",
+        "Yukon": "au"
+    };
+    return prepositionMap[province] || "en";  // Default "en" if not found
+    }
+    
+    const preposition = getProvincePreposition(province);
     
     // Prepare data for Plotly
     const xData = data.map(row => row.DATETIME_LOCAL || row.TIME_PERIOD);
@@ -700,7 +760,7 @@ function renderChart(data, province, energyVar) {
     };
     
     const layout = {
-        title: `${energyVarLabel} in ${province}`,
+        title: `${energyVarLabel} ${preposition} ${province}`,
         xaxis: {
             title: 'La date et l\'heure',
             tickformat: '%Y-%m-%d<br>%H:%M'
@@ -715,7 +775,8 @@ function renderChart(data, province, energyVar) {
     const config = {
         responsive: true,
         displayModeBar: true,
-        modeBarButtonsToRemove: ['lasso2d', 'select2d']
+        modeBarButtonsToRemove: ['lasso2d', 'select2d'],
+        locale: 'fr-CA' 
     };
     
     Plotly.newPlot('chart-container', [trace], layout, config);
