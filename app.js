@@ -220,40 +220,22 @@ let startDatePicker, endDatePicker;
 function initDatePickers() {
     startDatePicker = flatpickr("#start-date", {
         locale: "fr",
+        dateFormat: "Y-m-d",
         allowInput: false,
-        minDate: null,  // Will be set dynamically
-        maxDate: "today",
         onChange: function(selectedDates, dateStr) {
             startDateInput.value = dateStr;
-            // Sync end date min to start date
-            if (endDatePicker && selectedDates[0]) {
-                endDatePicker.set('minDate', selectedDates[0]);
-            }
-        },
-        onReady: function(selectedDates, dateStr, instance) {
-            startDateInput.value = dateStr || formatDate(getPast90Days()[0]);
         }
     });
-
+    
     endDatePicker = flatpickr("#end-date", {
         locale: "fr",
+        dateFormat: "Y-m-d",
         allowInput: false,
-        minDate: null,
-        maxDate: "today",
         onChange: function(selectedDates, dateStr) {
             endDateInput.value = dateStr;
         }
     });
 }
-
-// Call in your existing DOMContentLoaded
-document.addEventListener('DOMContentLoaded', function() {
-    updateEnergyVarSelect();
-    updateDateInputs();
-    initDatePickers();  // Add this line
-    loadData();
-});
-
 
 // =============================================================================
 // ## UTILITY/HELPER FUNCTIONS
@@ -277,7 +259,7 @@ function getPast90Days() {
     const endDate = new Date();
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - 90);
-    return { startDate, endDate };
+    return [startDate, endDate];
 }
 
 // Province-specific minimum available dates
@@ -691,7 +673,7 @@ function updateCounterpartAreaSelect() {
 function updateDateInputs() {
     const province = provinceSelect.value;
     const energyVar = energyVarSelect.value;
-    const { startDate, endDate } = getPast90Days();
+    const [startDate, endDate] = getPast90Days();
 
     const minDate = getMinStartDate(province, energyVar);
     const effectiveStart = startDate > minDate ? startDate : minDate;
@@ -701,6 +683,33 @@ function updateDateInputs() {
     startDateInput.min = formatDate(minDate);
     startDateInput.max = formatDate(new Date()); // max start date
     endDateInput.max = formatDate(new Date()); // max end date
+}
+
+function updateFlatpickrMinDate() {
+    const province = provinceSelect.value;
+    const energyVar = energyVarSelect.value;
+    const minDate = getMinStartDate(province, energyVar);
+    const maxDate = new Date();  // Today
+    
+    const [start90, end90] = getPast90Days();
+    const effectiveStart = start90 < minDate ? minDate : start90;
+    
+    // SET CONSTRAINTS FIRST
+    if (startDatePicker) {
+        startDatePicker.set('minDate', minDate);
+        startDatePicker.set('maxDate', maxDate);
+        startDatePicker.setDate(effectiveStart);  // Now works
+    }
+    
+    if (endDatePicker) {
+        endDatePicker.set('minDate', minDate);
+        endDatePicker.set('maxDate', maxDate);
+        endDatePicker.setDate(end90);
+    }
+    
+    // Sync inputs
+    startDateInput.value = formatDate(effectiveStart);
+    endDateInput.value = formatDate(end90);
 }
 
 // =============================================================================
@@ -774,9 +783,7 @@ function renderChart(data, province, energyVar) {
     
     const config = {
         responsive: true,
-        displayModeBar: true,
-        modeBarButtonsToRemove: ['lasso2d', 'select2d'],
-        locale: 'fr-CA' 
+        displayModeBar: false,
     };
     
     Plotly.newPlot('chart-container', [trace], layout, config);
@@ -1203,18 +1210,21 @@ function filterAndRenderCurrentData() {
 counterpartAreaSelect.addEventListener('change', filterAndRenderCurrentData);
 
 // Event listeners
-provinceSelect.addEventListener('change', () => {
+provinceSelect.addEventListener('change', function() {
     updateEnergyVarSelect();
     updateDateInputs();
     updateCounterpartAreaSelect();
+    updateFlatpickrMinDate();
     loadData();
 });
 
-energyVarSelect.addEventListener('change', () => {
+energyVarSelect.addEventListener('change', function() {
     updateDateInputs();
     updateCounterpartAreaSelect();
+    updateFlatpickrMinDate();
     loadData();
 });
+
 
 // Manual refresh + download
 updateBtn.addEventListener('click', loadData);
@@ -1228,8 +1238,11 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 });
 
 // Initialize on page load
-document.addEventListener('DOMContentLoaded', () => {
-    updateEnergyVarSelect();
-    updateDateInputs();
-    loadData();
+document.addEventListener('DOMContentLoaded', function() {
+    updateEnergyVarSelect();     // Selects first province/var
+    updateDateInputs();          // Computes minDate
+    initDatePickers();           // Creates pickers
+    updateFlatpickrMinDate();    // Sets dates + constraints
+    loadData();                  // Loads with dates
 });
+
