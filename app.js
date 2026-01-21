@@ -221,7 +221,6 @@ function initDatePickers() {
     startDatePicker = flatpickr("#start-date", {
         locale: "fr",
         dateFormat: "Y-m-d",
-        allowInput: false,
         onChange: function(selectedDates, dateStr) {
             startDateInput.value = dateStr;
         }
@@ -230,7 +229,6 @@ function initDatePickers() {
     endDatePicker = flatpickr("#end-date", {
         locale: "fr",
         dateFormat: "Y-m-d",
-        allowInput: false,
         onChange: function(selectedDates, dateStr) {
             endDateInput.value = dateStr;
         }
