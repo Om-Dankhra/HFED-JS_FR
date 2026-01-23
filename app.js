@@ -10,6 +10,7 @@ const BASE_URL_SUFFIX = "&dimensionAtObservation=AllDimensions";
 let pagedData = [];           // Current table data for pagination
 let currentPage = 1;          // Active table page
 const rowsPerPage = 10;       // Rows per table page
+const formatter = new Intl.NumberFormat('fr-CA');
 
 // ## PROVINCE MAPPINGS
 // Dataflow IDs for each province (required for API queries)
@@ -471,7 +472,7 @@ function applyProvincePostProcessing(data, province, energyVar) {
                                (row.COUNTERPART_AREA || "");
     });
 
-    // 3. Fix UNIT_MEASURE inconsistencies
+    // 3. Fix UNIT_MEASURE 
     data.forEach(row => {
         // PEI: WIND_PERCENT should be % not MW
         if (province === "Île-du-Prince-Édouard" && energyVar === "WIND_PERCENT" && row.UNIT_MEASURE === "MW") {
@@ -481,6 +482,35 @@ function applyProvincePostProcessing(data, province, energyVar) {
         if (province === "Nouveau-Brunswick" && row.UNIT_MEASURE === "MW") {
             row.UNIT_MEASURE = "MWh";
         }
+    });
+
+    // Convert/format numbers with locale thousands separator
+    const numericCol = "OBS_VALUE";
+
+    // Convert to numbers where possible
+    data.forEach(row => {
+      if (row[numericCol] !== undefined && row[numericCol] !== null && row[numericCol] !== "") {
+        const num = Number(row[numericCol]);
+        if (!Number.isNaN(num)) {
+          // Thousand separator
+          row[numericCol] = num.toLocaleString("fr-CA"); // e.g. "12 345,67"
+        }
+      }
+    });
+
+    // Right-align: pad all values to the max width (as text)
+    let maxLen = 0;
+    data.forEach(row => {
+      if (row[numericCol] != null) {
+        maxLen = Math.max(maxLen, String(row[numericCol]).length);
+      }
+    });
+
+    data.forEach(row => {
+      if (row[numericCol] != null) {
+        const v = String(row[numericCol]);
+        row[numericCol] = v.padStart(maxLen, " ");
+      }
     });
 
     return data;
@@ -696,7 +726,7 @@ function updateFlatpickrMinDate() {
     if (startDatePicker) {
         startDatePicker.set('minDate', minDate);
         startDatePicker.set('maxDate', maxDate);
-        startDatePicker.setDate(effectiveStart);  // Now works
+        startDatePicker.setDate(effectiveStart); 
     }
     
     if (endDatePicker) {
@@ -745,7 +775,11 @@ function renderChart(data, province, energyVar) {
     
     // Prepare data for Plotly
     const xData = data.map(row => row.DATETIME_LOCAL || row.TIME_PERIOD);
-    const yData = data.map(row => parseFloat(row.OBS_VALUE));
+    const yData = data.map(row => {
+    const valueStr = row.OBS_VALUE.toString().trim();
+    const normalized = valueStr.replace(/[^\d,]/g, '').replace(/,/g, '.');
+    return parseFloat(normalized);
+    });
     
     const trace = {
     x: xData,
@@ -824,16 +858,7 @@ function renderTablePage() {
 
     const headers = Object.keys(pagedData[0]);
 
-    const displayHeaders = [
-        'DATAFLOW',
-        'REF_AREA',
-        'COUNTERPART_AREA',
-        'ENERGY_FLOWS',
-        'TIME_PERIOD',
-        'OBS_VALUE',
-        'DATETIME_LOCAL',
-        'UNIT_MEASURE'
-    ];
+    const displayHeaders = ['DATAFLOW', 'REF_AREA', 'COUNTERPART_AREA', 'ENERGY_FLOWS', 'TIME_PERIOD', 'OBS_VALUE', 'DATETIME_LOCAL', 'UNIT_MEASURE'];
 
     const headerLabels = {
         DATAFLOW: 'Flux de données',
@@ -876,7 +901,7 @@ function renderTablePage() {
     // footer like DataTables: "Showing 1 to 10 of 2,863 entries  Prev 1 2 3 ... Next"
     html += `<div class="table-footer">
         <div class="table-info">
-            Affichage de ${startIdx + 1} à ${endIdx} sur ${totalRows} entrées
+            Affichage de ${formatter.format(startIdx + 1)} à ${formatter.format(endIdx)} sur ${formatter.format(totalRows)} entrées
         </div>
         <div class="table-pagination">
             <button class="page-btn" data-page="prev" ${currentPage === 1 ? 'disabled' : ''}>Précédent</button>
@@ -900,7 +925,6 @@ function renderTablePage() {
 }
 
 function buildPageButtons(current, total) {
-    // simple: show first, last, current, neighbors with ellipsis
     const pages = [];
     for (let i = 1; i <= total; i++) {
         if (i === 1 || i === total || Math.abs(i - current) <= 1) {
@@ -914,10 +938,10 @@ function buildPageButtons(current, total) {
             return `<span class="page-ellipsis">…</span>`;
         }
         const active = p === current ? 'active' : '';
-        return `<button class="page-btn ${active}" data-page="${p}">${p}</button>`;
+        const displayPage = formatter.format(p);  // Format for display
+        return `<button class="page-btn ${active}" data-page="${p}">${displayPage}</button>`;
     }).join('');
 }
-
 
 // Update API URLs display
 function updateApiUrls() {
@@ -951,154 +975,65 @@ Exemple (format CSV) : ${csvUrlDate}`;
 // Download data as CSV
 // Build *download* dataset from live UI state, ignoring any stale currentData
 async function downloadData() {
-  const province  = provinceSelect.value;
+  const province = provinceSelect.value;
   const energyVar = energyVarSelect.value;
-
-  // Get fresh dates directly from inputs so "Update data" click is not required
   const startDate = new Date(startDateInput.value);
-  const endDate   = new Date(endDateInput.value);
+  const endDate = new Date(endDateInput.value);
 
-  // Sanity check
   if (!startDateInput.value || !endDateInput.value) {
     alert("Veuillez sélectionner une date de début et de fin valide avant de télécharger.");
     return;
   }
 
-  // Frequency and URL consistent with the rest of the app
   const url = buildApiUrl(province, energyVar, startDate, endDate);
 
   try {
-    showLoading(true);  // optional; you already have this helper
-
+    showLoading(true);
     const response = await fetch(url);
     if (!response.ok) {
       throw new Error("Download request failed with status " + response.status);
     }
 
-    let data = parseCSV(await response.text());  // same parser used elsewhere
+    let data = parseCSV(await response.text()); 
 
-    //  post-processing
+    // Step 1: Apply province-specific post-processing (as in fetchData)
+    data = applyProvincePostProcessing(data, province, energyVar);
 
-    // 1) COUNTERPART_AREA: "_Z" -> "N/A"
-    data.forEach(row => {
-      if (row.COUNTERPART_AREA === "_Z") {
-        row.COUNTERPART_AREA = "N/A";
-      }
-    });
+    // Step 2: Define display headers and explicit key mapping
+    const displayHeaders = ['Flux de données', 'Géographie de référence', 'Zone de contrepartie', 'Flux d\'énergie', 'Période (UTC)', 'Valeur observée', 'Période (locale)', 'Unité de mesure'];
 
-    // 2) UNIT_MEASURE fixes:
-    // PEI: WIND_PERCENT -> replace "MW" with "%"
-    if (province === "Île-du-Prince-Édouard" && energyVar === "WINDPERCENT") {
-      data.forEach(row => {
-        if (row.UNIT_MEASURE) {
-          row.UNIT_MEASURE = row.UNIT_MEASURE.replace(/MW/g, "%");
-        }
-      });
-    }
-
-    // Nouveau-Brunswick: all "MW" -> "MWh"
-    if (province === "Nouveau-Brunswick") {
-      data.forEach(row => {
-        if (row.UNIT_MEASURE) {
-          row.UNIT_MEASURE = row.UNIT_MEASURE.replace(/MW/g, "MWh");
-        }
-      });
-    }
-
-    // 3) Format numeric OBS_VALUE with thousands separator + right align
-    //    - Convert to number, format with locale, then pad.
-    const numericCol = "OBS_VALUE";
-
-    // Convert to numbers where possible
-    data.forEach(row => {
-      if (row[numericCol] !== undefined && row[numericCol] !== null && row[numericCol] !== "") {
-        const num = Number(row[numericCol]);
-        if (!Number.isNaN(num)) {
-          // Thousand separator
-          row[numericCol] = num.toLocaleString("en-CA"); // e.g. "12,345.67"
-        }
-      }
-    });
-
-    // Right-align: pad all values to the max width (as text)
-    let maxLen = 0;
-    data.forEach(row => {
-      if (row[numericCol] != null) {
-        maxLen = Math.max(maxLen, String(row[numericCol]).length);
-      }
-    });
-
-    data.forEach(row => {
-      if (row[numericCol] != null) {
-        const v = String(row[numericCol]);
-        row[numericCol] = v.padStart(maxLen, " ");
-      }
-    });
-
-    // 4) Rename columns
-    const colNamesMapping = {
-      "DATAFLOW":       "Flux de données",
-      "REF_AREA":       "Géographie de référence",
-      "COUNTERPART_AREA": "Zone de contrepartie",
-      "ENERGY_FLOWS":   "Flux d'énergie",
-      "TIME_PERIOD":    "Période (UTC)",
-      "OBS_VALUE":      "Valeur observée",
-      "DATETIME_LOCAL": "Période (locale)",
-      "UNIT_MEASURE":   "Unité de mesure"
+    const headersKey = {
+        'Flux de données': 'DATAFLOW' ,
+        'Géographie de référence':'REF_AREA',
+        'Zone de contrepartie' :'COUNTERPART_AREA',
+        'Flux d\'énergie':'ENERGY_FLOWS',
+        'Période (UTC)': 'TIME_PERIOD',
+        'Valeur observée': 'OBS_VALUE',
+        'Période (locale)':'DATETIME_LOCAL',
+        'Unité de mesure':'UNIT_MEASURE'
     };
 
-    // Transform each row keys
-    const renamedData = data.map(row => {
-      const newRow = {};
-      Object.keys(row).forEach(key => {
-        const newKey = colNamesMapping[key] || key;
-        newRow[newKey] = row[key];
-      });
-      return newRow;
-    });
+    // Step 3: Build CSV
+    let csv = displayHeaders.join(',') + '\n';
 
-    // 5) Reorder columns
-    const orderedCols = [
-      "Flux de données",          // 1
-      "Zone de contrepartie",   // 3
-      "Flux d'énergie",        // 4
-      "Période (UTC)",  // 5
-      "Valeur observée",  // 6
-      "Période (locale)",// 7
-      "Unité de mesure"        // 8
-    ];
-
-    const allKeys = Object.keys(renamedData[0] || {});
-    // Take the "extra" column that is not in orderedCols but exists in data
-    const extraKeys = allKeys.filter(k => !orderedCols.includes(k));
-    if (extraKeys.length > 0) {
-      // Use the first extra as the 9th exported column (mimics c(1,3:8,11))
-      orderedCols.push(extraKeys[0]);
-    }
-
-    // Build CSV string
-    const headers = orderedCols;
-    let csv = headers.join(",") + "\n";
-
-    renamedData.forEach(row => {
-      const line = headers.map(h => {
-        let value = row[h] != null ? String(row[h]) : "";
-
-        // Basic CSV escaping
-        if (value.includes(",") || value.includes("\"") || value.includes("\n")) {
-          value = "\"" + value.replace(/"/g, "\"\"") + "\"";
+    data.forEach(row => {
+    const line = displayHeaders.map(header => {
+        const key = headersKey[header];
+        let value = row[key] != null ? String(row[key]) : '';
+        if (value.includes(',') || value.includes('"') || value.includes('\n') || value.includes(' ')) {
+        value = '"' + value.replace(/"/g, '""') + '"';
         }
         return value;
-      }).join(",");
-      csv += line + "\n";
+    }).join(',');
+    csv += line + '\n';
     });
 
-    // Trigger file download
-    const fileName = `HFED_${province}_${energyVar}_data.csv`;
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    // Step 4: Trigger download
+    const fileName = `DEHF_${province}_${energyVar}_data.csv`;
+    const bom = '\uFEFF';
+    const blob = new Blob([bom, csv], { type: 'text/csv;charset=utf-8;' });
     const urlObj = window.URL.createObjectURL(blob);
-
-    const a = document.createElement("a");
+    const a = document.createElement('a');
     a.href = urlObj;
     a.download = fileName;
     document.body.appendChild(a);
@@ -1106,8 +1041,8 @@ async function downloadData() {
     document.body.removeChild(a);
     window.URL.revokeObjectURL(urlObj);
   } catch (err) {
-    console.error("Download failed:", err);
-    alert("Échec du téléchargement. Veuillez réessayer.");
+    console.error('Download failed:', err);
+    alert('Download failed. Please try again.');
   } finally {
     showLoading(false);
   }
@@ -1125,7 +1060,7 @@ function switchTab(tabName) {
     document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
     document.getElementById(`${tabName}-tab`).classList.add('active');
     
-        if (tabName === 'chart') {
+    if (tabName === 'chart') {
         resizeChart();
     } else if (tabName === 'api') {
         updateApiUrls();
@@ -1213,6 +1148,7 @@ provinceSelect.addEventListener('change', function() {
     updateDateInputs();
     updateCounterpartAreaSelect();
     updateFlatpickrMinDate();
+    updateApiUrls();
     loadData();
 });
 
@@ -1220,6 +1156,7 @@ energyVarSelect.addEventListener('change', function() {
     updateDateInputs();
     updateCounterpartAreaSelect();
     updateFlatpickrMinDate();
+    updateApiUrls();
     loadData();
 });
 
