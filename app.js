@@ -260,6 +260,7 @@ const createYearDropdown = (instance) => {
 
 function initDatePickers() {
     startDatePicker = flatpickr("#start-date", {
+        locale: "fr",
         onChange: function(selectedDates, dateStr) { startDateInput.value = dateStr; },
         onReady: function(selectedDates, dateStr, instance) {
             startYearDropdown = createYearDropdown(instance);
@@ -270,6 +271,7 @@ function initDatePickers() {
     });
 
     endDatePicker = flatpickr("#end-date", {
+        locale: "fr",
         onChange: function(selectedDates, dateStr) { endDateInput.value = dateStr; },
         onReady: function(selectedDates, dateStr, instance) {
             endYearDropdown = createYearDropdown(instance);
@@ -1250,4 +1252,5 @@ document.addEventListener('DOMContentLoaded', function() {
     updateFlatpickrMinDate();    // Sets dates + constraints
     loadData();                  // Loads with dates
 });
+
 
