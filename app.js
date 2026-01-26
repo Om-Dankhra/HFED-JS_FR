@@ -896,7 +896,7 @@ function renderChart(data, province, energyVar) {
 // Get Y-axis label
 function getYAxisLabel(province, energyVar) {
     if (province === "Île-du-Prince-Édouard" && energyVar === "WIND_PERCENT") {
-        return "Percent (%)";
+        return "Pourcentage (%)";
     }
     if (province === "Nouveau-Brunswick") {
         return "MWh";
@@ -1252,5 +1252,6 @@ document.addEventListener('DOMContentLoaded', function() {
     updateFlatpickrMinDate();    // Sets dates + constraints
     loadData();                  // Loads with dates
 });
+
 
 
