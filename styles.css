@@ -36,13 +36,6 @@ body {
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-/* Year arrows always visible */
-.flatpickr-calendar .flatpickr-current-month .numInputWrapper .arrowUp,
-.flatpickr-calendar .flatpickr-current-month .numInputWrapper .arrowDown {
-  opacity: 1 !important;
-  visibility: visible !important;
-}
-
 /* calendar icon inside the input */
 .flatpickr-icon {
   position: absolute;
@@ -173,6 +166,10 @@ table th {
     background-color: #f8f9fa;
     font-weight: 600;
     color: #333;
+}
+
+.observed-value {
+  text-align: right;
 }
 
 table tr:hover {

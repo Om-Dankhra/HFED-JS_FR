@@ -216,24 +216,84 @@ const apiUrlsContainer = document.getElementById('api-urls');
 const loadingSpinner = document.getElementById('loading-spinner');
 
 let startDatePicker, endDatePicker;
+let startYearDropdown, endYearDropdown;
 
-// Init Flatpickr after DOM ready
-function initDatePickers() {
-    startDatePicker = flatpickr("#start-date", {
-        locale: "fr",
-        dateFormat: "Y-m-d",
-        onChange: function(selectedDates, dateStr) {
-            startDateInput.value = dateStr;
-        }
+const createYearDropdown = (instance) => {
+    const yearElement = instance.currentYearElement;
+    const parent = yearElement.parentElement;
+    
+    // Hide default year input and arrows
+    parent.style.display = 'none';
+    
+    const minDate = instance.config.minDate || new Date(2001, 0, 1);
+    const maxDate = instance.config.maxDate || new Date();
+    const minYear = new Date(minDate).getFullYear();
+    const maxYear = new Date(maxDate).getFullYear();
+    
+    const yearSelect = document.createElement('select');
+    yearSelect.className = 'flatpickr-monthDropdown-months year-dropdown';
+    
+    // Populate ONLY available years (descending for usability)
+    for (let year = maxYear; year >= minYear; year--) {
+        const option = document.createElement('option');
+        option.value = year;
+        option.textContent = year;
+        yearSelect.appendChild(option);
+    }
+    
+    yearSelect.value = instance.currentYear;
+    yearSelect.addEventListener('change', (e) => {
+        instance.currentYear = parseInt(e.target.value);
+        instance.redraw();
     });
     
-    endDatePicker = flatpickr("#end-date", {
-        locale: "fr",
-        dateFormat: "Y-m-d",
-        onChange: function(selectedDates, dateStr) {
-            endDateInput.value = dateStr;
+    // Position before month dropdown
+    const monthNav = parent.parentElement.querySelector('.flatpickr-monthDropdown-months');
+    if (monthNav) {
+        monthNav.parentNode.insertBefore(yearSelect, monthNav);
+    } else {
+        parent.parentElement.appendChild(yearSelect);
+    }
+    
+    return yearSelect;
+};
+
+function initDatePickers() {
+    startDatePicker = flatpickr("#start-date", {
+        onChange: function(selectedDates, dateStr) { startDateInput.value = dateStr; },
+        onReady: function(selectedDates, dateStr, instance) {
+            startYearDropdown = createYearDropdown(instance);
+        },
+        onMonthChange: function(selectedDates, dateStr, instance) {
+            if (startYearDropdown) startYearDropdown.value = instance.currentYear;
         }
     });
+
+    endDatePicker = flatpickr("#end-date", {
+        onChange: function(selectedDates, dateStr) { endDateInput.value = dateStr; },
+        onReady: function(selectedDates, dateStr, instance) {
+            endYearDropdown = createYearDropdown(instance);
+        },
+        onMonthChange: function(selectedDates, dateStr, instance) {
+            if (endYearDropdown) endYearDropdown.value = instance.currentYear;
+        }
+    });
+}
+
+// New function to refresh dropdowns with current min/max
+function refreshYearDropdowns() {
+    if (startDatePicker && startDatePicker.config) {
+        if (startYearDropdown && startYearDropdown.parentNode) {
+            startYearDropdown.remove();
+        }
+        startYearDropdown = createYearDropdown(startDatePicker);
+    }
+    if (endDatePicker && endDatePicker.config) {
+        if (endYearDropdown && endYearDropdown.parentNode) {
+            endYearDropdown.remove();
+        }
+        endYearDropdown = createYearDropdown(endDatePicker);
+    }
 }
 
 // =============================================================================
@@ -717,28 +777,38 @@ function updateFlatpickrMinDate() {
     const province = provinceSelect.value;
     const energyVar = energyVarSelect.value;
     const minDate = getMinStartDate(province, energyVar);
-    const maxDate = new Date();  // Today
-    
+    const maxDate = new Date(); // Today
     const [start90, end90] = getPast90Days();
     const effectiveStart = start90 < minDate ? minDate : start90;
-    
-    // SET CONSTRAINTS FIRST
+
+    // Set input attributes FIRST for consistency
+    const minDateStr = formatDate(minDate);
+    const maxDateStr = formatDate(maxDate);
+    startDateInput.min = minDateStr;
+    startDateInput.max = maxDateStr;
+    endDateInput.min = minDateStr;     // Shared min
+    endDateInput.max = maxDateStr;     // Explicit max for end
+
+    // Update pickers
     if (startDatePicker) {
         startDatePicker.set('minDate', minDate);
         startDatePicker.set('maxDate', maxDate);
-        startDatePicker.setDate(effectiveStart); 
+        startDatePicker.setDate(effectiveStart);
     }
-    
     if (endDatePicker) {
         endDatePicker.set('minDate', minDate);
         endDatePicker.set('maxDate', maxDate);
         endDatePicker.setDate(end90);
     }
-    
-    // Sync inputs
+
+    // Sync input values
     startDateInput.value = formatDate(effectiveStart);
     endDateInput.value = formatDate(end90);
+
+    // Refresh year dropdowns LAST
+    refreshYearDropdowns();
 }
+
 
 // =============================================================================
 // ## VISUALIZATION RENDERING
