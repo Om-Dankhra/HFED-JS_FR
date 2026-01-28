@@ -168,8 +168,9 @@ table th {
     color: #333;
 }
 
-.observed-value {
-  text-align: right;
+/* Right-align numeric OBSVALUE column */
+table td:nth-child(6) {
+    text-align: right !important;
 }
 
 table tr:hover {
