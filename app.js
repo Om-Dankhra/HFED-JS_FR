@@ -196,7 +196,6 @@ const ENERGY_VARS = {
   ]
 };
 
-
 // ## APPLICATION STATE
 let currentData = null;       // Filtered data currently displayed
 let dataCache = {};           // Cache to avoid duplicate API calls
@@ -601,8 +600,12 @@ function parseCSV(csvText) {
 
 // Show/hide loading spinner
 function showLoading(show) {
-    loadingSpinner.style.display = show ? 'block' : 'none';
-    chartContainer.style.opacity = show ? '0.5' : '1';
+  loadingSpinner.style.display = show ? 'block' : 'none';
+
+  // Dim containers while showing loader
+  chartContainer.style.opacity = show ? 0.5 : 1;
+  tableContainer.style.opacity = show ? 0.5 : 1;
+  apiUrlsContainer.style.opacity = show ? 0.5 : 1;
 }
 
 // Updates energy variable dropdown with province-specific options
@@ -896,7 +899,7 @@ function renderChart(data, province, energyVar) {
 // Get Y-axis label
 function getYAxisLabel(province, energyVar) {
     if (province === "Île-du-Prince-Édouard" && energyVar === "WIND_PERCENT") {
-        return "Pourcentage (%)";
+        return "Percent (%)";
     }
     if (province === "Nouveau-Brunswick") {
         return "MWh";
@@ -1252,6 +1255,4 @@ document.addEventListener('DOMContentLoaded', function() {
     updateFlatpickrMinDate();    // Sets dates + constraints
     loadData();                  // Loads with dates
 });
-
-
 
