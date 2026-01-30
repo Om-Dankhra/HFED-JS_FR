@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HFED Energy Dashboard</title>
     <link rel="stylesheet" href="styles.css">
-    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/fr.js"></script>
 </head>
 <body>
     <div class="container">
@@ -43,7 +43,7 @@
                 <label for="start-date">Date de début</label>
                 <div class="flatpickr-wrapper" id="start-date-wrapper">
                     <input type="text" id="start-date" class="flatpickr-input" readonly data-input>
-                    <span class="flatpickr-icon" aria-hidden="true">📅</span>
+                    <i class="fas fa-calendar-alt flatpickr-icon" aria-hidden="true"></i>
                 </div>
             </div>
 
@@ -51,19 +51,19 @@
                 <label for="end-date">Date de fin</label>
                 <div class="flatpickr-wrapper" id="end-date-wrapper">
                     <input type="text" id="end-date" class="flatpickr-input" readonly data-input>
-                    <span class="flatpickr-icon" aria-hidden="true">📅</span>
+                    <i class="fas fa-calendar-alt flatpickr-icon" aria-hidden="true"></i>
                 </div>
             </div>
 
             <div class="control-group">
                 <button id="update-btn" class="btn-primary">
-                    <span>🔄</span> Mettre à jour la période
+                    <i class="fas fa-sync-alt"></i> Mettre à jour la période
                 </button>
             </div>
 
             <div class="control-group">
                 <button id="download-btn" class="btn-primary">
-                    <span>⬇️</span> Télécharger les données
+                    <i class="fas fa-download"></i> Télécharger les données
                 </button>
             </div>
         </div>
