@@ -1,16 +1,9 @@
 * {
-    margin: 0;
-    padding: 0;
     box-sizing: border-box;
 }
 
-body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    background-color: #f5f5f5;
-    padding: 20px;
-}
-
 .container {
+    width: 100%;
     max-width: 1400px;
     margin: 0 auto;
     background: white;
@@ -19,39 +12,38 @@ body {
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
+/* Form Controls */
 .flatpickr-wrapper {
-  position: relative;
-  height: 38px;
+    position: relative;
+    height: 38px;
 }
 
 .flatpickr-input {
-  width: 100%;
-  height: 38px;
-  padding: 8px 36px 8px 12px; /* room for icon on the right */
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 14px;
-  background: white;
-  cursor: pointer;
-  transition: border-color 0.15s, box-shadow 0.15s;
+    width: 100%;
+    height: 38px;
+    padding: 8px 36px 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    background: white;
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-/* calendar icon inside the input */
 .flatpickr-icon {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  pointer-events: none;
-  font-size: 16px;
-  color: #666;
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    font-size: 16px;
+    color: #666;
 }
 
-/* hover / focus to signal interactivity */
 .flatpickr-wrapper:hover .flatpickr-input,
 .flatpickr-input:focus {
-  border-color: #376ba1;
-  box-shadow: 0 0 0 2px rgba(55, 107, 161, 0.15);
+    border-color: #376ba1;
+    box-shadow: 0 0 0 2px rgba(55, 107, 161, 0.15);
 }
 
 .controls-row {
@@ -74,7 +66,8 @@ body {
 }
 
 .control-group select,
-.control-group input[type="date"] {
+.control-group input[type="date"],
+.form-control {
     padding: 8px 12px;
     border: 1px solid #ddd;
     border-radius: 4px;
@@ -82,10 +75,7 @@ body {
     height: 38px;
 }
 
-.btn-primary {
-    background-color: #376ba1;
-    color: white;
-    border: none;
+.btn {
     padding: 10px 16px;
     border-radius: 4px;
     cursor: pointer;
@@ -94,6 +84,12 @@ body {
     height: 38px;
     margin-top: 24px;
     transition: background-color 0.2s;
+    border: none;
+}
+
+.btn-primary {
+    background-color: #376ba1;
+    color: white;
 }
 
 .btn-primary:hover {
@@ -105,120 +101,225 @@ body {
     cursor: not-allowed;
 }
 
-.tabs {
-    display: flex;
-    border-bottom: 2px solid #e0e0e0;
+/* WET-BOEW Tab Overrides */
+.wb-tabs {
     margin-bottom: 20px;
 }
 
-.tab-btn {
-    padding: 12px 24px;
-    background: none;
+.wb-tabs .tabpanels {
     border: none;
+}
+
+/* Horizontal tab layout */
+.wb-tabs .tabpanels > details {
+    display: inline-block;
+    margin-bottom: 0;
+    vertical-align: top;
+    border: none;
+}
+
+.wb-tabs .tabpanels > details > summary {
+    display: inline-block;
+    background-color: #f5f5f5;
+    border: 1px solid #ddd;
+    border-bottom: none;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
     cursor: pointer;
-    font-size: 15px;
-    color: #666;
-    border-bottom: 3px solid transparent;
-    transition: all 0.2s;
+    border-radius: 4px 4px 0 0;
+    margin-right: -1px;
+    transition: background-color 0.2s;
+    list-style: none;
 }
 
-.tab-btn:hover {
-    color: #036BDB;
+.wb-tabs .tabpanels > details > summary:hover {
+    background-color: #e9ecef;
 }
 
-.tab-btn.active {
-    color: #052d57;
-    border-bottom-color: #1e4b7a;
+.wb-tabs .tabpanels > details[open] > summary {
+    background-color: white;
+    color: #376ba1;
+    border-bottom: 2px solid white;
+    position: relative;
+    z-index: 2;
+    margin-bottom: -1px;
 }
 
-.tab-pane {
+/* Tab content area */
+.wb-tabs .tabpanels > details > *:not(summary) {
     display: none;
-    padding: 20px 0;
-    min-height: 550px;
 }
 
-.tab-pane.active {
+.wb-tabs .tabpanels > details[open] > *:not(summary) {
     display: block;
-}
-
-#chart-container {
+    position: absolute;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 0 4px 4px 4px;
+    padding: 20px;
     min-height: 500px;
+    margin-top: -1px;
+    overflow: hidden; 
+    max-width: 100%; 
 }
 
-#table-container {
-    overflow-x: auto;
+/* Container positioning context */
+.wb-tabs {
+    position: relative;
 }
 
-table {
+.wb-tabs .tabpanels {
+    position: relative;
+    padding-bottom: 520px; /* Adjust based on min-height + padding */
+}
+
+/* Chart, table, API containers */
+#chart-container,
+#table-container,
+#api-urls {
+    height: 540px !important;
+}
+
+/* WET-BOEW Table Styles */
+.table {
     width: 100%;
     border-collapse: collapse;
     font-size: 14px;
+    margin-bottom: 1em;
 }
 
-table th,
-table td {
+.table caption {
+    font-size: 1.2em;
+    font-weight: 600;
+    margin-bottom: 0.5em;
+    text-align: left;
+}
+
+.table th,
+.table td {
     padding: 12px;
     text-align: left;
     border-bottom: 1px solid #e0e0e0;
 }
 
-table th {
+.table th {
     background-color: #f8f9fa;
     font-weight: 600;
     color: #333;
 }
 
-/* Right-align numeric OBSVALUE column */
-table td:nth-child(6) {
+/* Right-align numeric columns */
+.table td:nth-child(6) {
     text-align: right !important;
 }
 
-table tr:hover {
-    background-color: #f8f9fa;
+/* Striped rows */
+.table-striped tbody tr:nth-of-type(odd) {
+    background-color: #f9f9f9;
 }
 
+/* Hover effect */
+.table-hover tbody tr:hover {
+    background-color: #f5f5f5;
+}
+
+/* Bordered table */
+.table-bordered {
+    border: 1px solid #ddd;
+}
+
+.table-bordered th,
+.table-bordered td {
+    border: 1px solid #ddd;
+}
+
+/* Condensed table */
+.table-condensed th,
+.table-condensed td {
+    padding: 6px;
+}
+
+/* Responsive wrapper */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Pagination (WET-BOEW compliant) */
 .table-footer {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: 8px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #e0e0e0;
     font-size: 13px;
 }
 
-.table-pagination {
+.table-info {
+    color: #666;
+}
+
+.pagination {
     display: flex;
     gap: 4px;
     align-items: center;
+    list-style: none;
+    padding: 0;
+    margin: 0;
 }
 
-.page-btn {
+.pagination li {
+    display: inline-block;
+}
+
+.pagination .page-btn {
     border: 1px solid #ddd;
     background: #fff;
-    padding: 4px 8px;
+    padding: 6px 12px;
     cursor: pointer;
     font-size: 13px;
     border-radius: 3px;
+    margin: 0 2px;
+    color: #376ba1;
+    text-decoration: none;
+    transition: all 0.2s;
+    height: auto;
+    margin-top: 0;
 }
 
-.page-btn.active {
-    background: #036BDB;
+.pagination .page-btn:hover:not(:disabled) {
+    background-color: #f5f5f5;
+    border-color: #376ba1;
+}
+
+.pagination .page-btn.active {
+    background: #376ba1;
     color: #fff;
-    border-color: #036BDB;
+    border-color: #376ba1;
+    font-weight: 600;
 }
 
-.page-btn:disabled {
+.pagination .page-btn:disabled {
     background: #f5f5f5;
     color: #aaa;
     cursor: default;
+    border-color: #ddd;
 }
 
 .page-ellipsis {
-    padding: 0 4px;
+    padding: 6px 4px;
+    color: #666;
 }
 
+/* Loading Spinner */
 .spinner {
-    border: 16px solid #f3f3f3; /* Light grey */
-    border-top: 16px solid #3498db; /* Blue */
+    border: 16px solid #f3f3f3;
+    border-top: 16px solid #3498db;
     border-radius: 50%;
     width: 120px;
     height: 120px;
@@ -226,27 +327,28 @@ table tr:hover {
     top: 50%;
     left: 50%;
     animation: spin 2s linear infinite;
+    z-index: 1000;
 }
 
-/* Highlighted category headings for Ontario & Quebec energy vars */
+@keyframes spin {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* Highlighted category headings for Ontario & Quebec */
 #energy-var-select optgroup {
     font-weight: 600;
     color: #222;
     background-color: #f0f6ff;
 }
 
-/* Make options inside groups normal weight */
 #energy-var-select optgroup option {
     font-weight: 400;
     color: #222;
     background-color: #fff;
 }
 
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
+/* API URLs display */
 #api-urls {
     background-color: #f5f5f5;
     padding: 16px;
@@ -254,4 +356,15 @@ table tr:hover {
     overflow-x: auto;
     font-size: 13px;
     line-height: 1.6;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+/* Accessibility - screen reader only content */
+.wb-inv {
+    clip: rect(1px, 1px, 1px, 1px);
+    height: 1px;
+    margin: 0;
+    overflow: hidden;
+    position: absolute;
+    width: 1px;
 }
