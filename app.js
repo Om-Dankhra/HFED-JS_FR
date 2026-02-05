@@ -818,18 +818,18 @@ function updateFlatpickrMinDate() {
 // =============================================================================
 // ## VISUALIZATION RENDERING
 // =============================================================================
-// Renders interactive Plotly time series chart
+// Renders interactive D3 time series chart
 function renderChart(data, province, energyVar) {
-    // Clear container FIRST, no early message
+    // Clear container FIRST
     chartContainer.innerHTML = '';
     if (!data || data.length === 0) {
-        chartContainer.innerHTML = '<p>Aucune donnée disponible pour la période sélectionnée</p>';
+        chartContainer.innerHTML = '<p>Aucune donnée disponible pour la période sélectionnée.</p>';
         return;
     }
     
-    const energyVarLabel = ENERGY_VARS[province].find(v => v.value === energyVar)?.label || energyVar;
+    const energyVarLabel =(ENERGY_VARS[province] || []).find(v => v.value === energyVar)?.label || energyVar;
 
-    // Returns French preposition for "dans/en/au Québec" style phrasing
+    // Returns French preposition
     function getProvincePreposition(province) {
     const prepositionMap = {
         "Terre-Neuve": "à",
@@ -847,53 +847,156 @@ function renderChart(data, province, energyVar) {
     }
     
     const preposition = getProvincePreposition(province);
-    
-    // Prepare data for Plotly
-    const xData = data.map(row => row.DATETIME_LOCAL || row.TIME_PERIOD);
-    const yData = data.map(row => {
-    const valueStr = row.OBS_VALUE.toString().trim();
-    const normalized = valueStr.replace(/[^\d,]/g, '').replace(/,/g, '.');
-    return parseFloat(normalized);
-    });
-    
-    const trace = {
-    x: xData,
-    y: yData,
-    type: 'scatter',
-    mode: 'lines',
-    name: energyVarLabel,
-    line: { color: '#036BDB', width: 2 },
-    hoverlabel: {
-        bgcolor: '#036BDB',   // same as line.color
-        bordercolor: '#333',
-        font: { color: '#ffffff' }
-    },
-    hovertemplate:
-        '<b>%{fullData.name}</b><br>' +
-        'Valeur observée : %{y}<br>' +
-        'La date et l\'heure : %{x}' +
-        '<extra></extra>'
-    };
-    
-    const layout = {
-        title: `${energyVarLabel} ${preposition} ${province}`,
-        xaxis: {
-            title: 'La date et l\'heure',
-            tickformat: '%Y-%m-%d<br>%H:%M'
-        },
-        yaxis: {
-            title: getYAxisLabel(province, energyVar)
-        },
-        margin: { t: 50, r: 40, l: 60, b: 80 },
-        hovermode: 'closest'
-    };
-    
-    const config = {
-        responsive: true,
-        displayModeBar: false,
-    };
-    
-    Plotly.newPlot('chart-container', [trace], layout, config);
+
+    // Prepare data for D3: parse date + numeric value
+    const parsedData = data
+        .map(row => {
+            const dateStr = row.DATETIME_LOCAL || row.TIME_PERIOD;
+            const rawVal = (row.OBS_VALUE || '').replace(/[^\d,]/g, '').replace(/,/g, '.').trim(); // strip thousands + padding
+            const value = rawVal === '' ? null : Number(rawVal);
+            const date = dateStr ? new Date(dateStr) : null;
+
+            if (!date || value == null || Number.isNaN(value)) return null;
+            return { date, value };
+        })
+        .filter(d => d !== null);
+
+    if (!parsedData.length) {
+        chartContainer.innerHTML = '<p>Aucune donnée disponible pour la période sélectionnée.</p>';
+        return;
+    }
+
+    // Dimensions
+    const margin = { top: 40, right: 40, bottom: 100, left: 70 };
+    const containerWidth = chartContainer.clientWidth || 800;
+    const containerHeight = chartContainer.clientHeight || 400;
+    const width = containerWidth - margin.left - margin.right;
+    const height = containerHeight - margin.top - margin.bottom;
+
+    // Create SVG with viewBox for responsiveness
+    const svg = d3.select(chartContainer)
+        .append('svg')
+        .attr('width', containerWidth)
+        .attr('height', containerHeight)
+        .attr('viewBox', `0 0 ${containerWidth} ${containerHeight}`)
+        .attr('preserveAspectRatio', 'xMidYMid meet');
+
+    const g = svg.append('g')
+        .attr('transform', `translate(${margin.left},${margin.top})`);
+
+    // Scales
+    const x = d3.scaleTime()
+        .domain(d3.extent(parsedData, d => d.date))
+        .range([0, width]);
+
+    const y = d3.scaleLinear()
+        .domain(d3.extent(parsedData, d => d.value))
+        .nice()
+        .range([height, 0]);
+
+    // Axes
+    const xAxis = d3.axisBottom(x)
+        .ticks(6)
+        .tickFormat(d3.timeFormat('%Y-%m-%d %H:%M'));
+
+    const yAxis = d3.axisLeft(y)
+        .ticks(6);
+
+    g.append('g')
+        .attr('transform', `translate(0,${height})`)
+        .call(xAxis)
+        .selectAll('text')
+        .style('text-anchor', 'middle');
+
+    g.append('g')
+        .call(yAxis);
+
+    // Axis labels
+    g.append('text')
+        .attr('x', width / 2)
+        .attr('y', height + 45)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#333')
+        .text('Date and time');
+
+    g.append('text')
+        .attr('transform', 'rotate(-90)')
+        .attr('x', -height / 2)
+        .attr('y', -50)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#333')
+        .text(getYAxisLabel(province, energyVar)); 
+
+    // Line generator
+    const line = d3.line()
+        .x(d => x(d.date))
+        .y(d => y(d.value));
+
+    // Line path
+    g.append('path')
+        .datum(parsedData)
+        .attr('fill', 'none')
+        .attr('stroke', '#036BDB')
+        .attr('stroke-width', 2)
+        .attr('d', line);
+
+    // Simple tooltip
+    let tooltip = d3.select('.hfed-tooltip');
+    if (tooltip.empty()) {
+        tooltip = d3.select('body')
+            .append('div')
+            .attr('class', 'hfed-tooltip')
+            .style('position', 'absolute')
+            .style('pointer-events', 'none')
+            .style('background', '#036BDB')
+            .style('color', '#fff')
+            .style('padding', '6px 10px')
+            .style('border-radius', '4px')
+            .style('font-size', '12px')
+            .style('box-shadow', '0 2px 4px rgba(0,0,0,0.2)')
+            .style('display', 'none');
+    }
+
+    const formatDateTime = d3.timeFormat('%Y-%m-%d %H:%M');
+
+    // Hover circles for tooltip
+    g.selectAll('.hfed-point')
+        .data(parsedData)
+        .enter()
+        .append('circle')
+        .attr('class', 'hfed-point')
+        .attr('cx', d => x(d.date))
+        .attr('cy', d => y(d.value))
+        .attr('r', 3)
+        .attr('fill', '#036BDB')
+        .attr('opacity', 0)
+        .on('mouseover', (event, d) => {
+            tooltip
+                .style('display', 'block')
+                .html(
+                    `<strong>${energyVarLabel}</strong><br>` +
+                    `Valeur observée : ${d.value}<br>` +
+                    `La date et l\'heure : ${formatDateTime(d.date)}`
+                );
+        })
+        .on('mousemove', (event) => {
+            tooltip
+                .style('left', (event.pageX + 12) + 'px')
+                .style('top', (event.pageY - 24) + 'px');
+        })
+        .on('mouseout', () => {
+            tooltip.style('display', 'none');
+        });
+
+    // Title
+    svg.append('text')
+        .attr('x', containerWidth / 2)
+        .attr('y', 20)
+        .attr('text-anchor', 'middle')
+        .attr('fill', '#333')
+        .style('font-size', '16px')
+        .style('font-weight', '600')
+        .text(`${energyVarLabel} ${preposition} ${province}`);
 }
 
 // Get Y-axis label
@@ -916,7 +1019,7 @@ function getYAxisLabel(province, energyVar) {
 // Renders paginated data table with navigation
 function renderTable(data) {
     if (!data || data.length === 0) {
-        tableContainer.innerHTML = '<p>Aucune donnée disponible pour la période sélectionnée</p>';
+        tableContainer.innerHTML = '<p>Aucune donnée disponible pour la période sélectionnée.</p>';
         return;
     }
 
@@ -927,7 +1030,7 @@ function renderTable(data) {
 
 function renderTablePage() {
     if (!pagedData || pagedData.length === 0) {
-        tableContainer.innerHTML = '<p>Aucune donnée disponible pour la période sélectionnée</p>';
+        tableContainer.innerHTML = '<p>Aucune donnée disponible pour la période sélectionnée.</p>';
         return;
     }
 
@@ -954,43 +1057,63 @@ function renderTablePage() {
     const endIdx = Math.min(startIdx + rowsPerPage, totalRows);
     const pageRows = pagedData.slice(startIdx, endIdx);
 
-    let html = '<table><thead><tr>';
+    // Build table with WET-BOEW classes
+    let html = '<table class="table table-striped table-hover">';
+    html += '<caption class="wb-inv">Energy data table for selected parameters</caption>';
+    html += '<thead><tr>';
+    
     displayHeaders.forEach(header => {
         if (headers.includes(header)) {
-            html += `<th>${headerLabels[header] || header}</th>`;
+            const scope = 'scope="col"';
+            html += `<th ${scope}>${headerLabels[header] || header}</th>`;
         }
     });
     html += '</tr></thead><tbody>';
 
     pageRows.forEach(row => {
         html += '<tr>';
-        displayHeaders.forEach(header => {
+        displayHeaders.forEach((header, index) => {
             if (headers.includes(header)) {
-                html += `<td>${row[header] ?? ''}</td>`;
+                const value = row[header] ?? '-';
+                // Right-align numeric observation values
+                const className = header === 'OBS_VALUE' ? ' class="text-right"' : '';
+                html += `<td${className}>${value}</td>`;
             }
         });
         html += '</tr>';
     });
     html += '</tbody></table>';
 
-    // footer like DataTables: "Showing 1 to 10 of 2,863 entries  Prev 1 2 3 ... Next"
+    // WET-BOEW pagination
     html += `<div class="table-footer">
         <div class="table-info">
             Affichage de ${formatter.format(startIdx + 1)} à ${formatter.format(endIdx)} sur ${formatter.format(totalRows)} entrées
         </div>
-        <div class="table-pagination">
-            <button class="page-btn" data-page="prev" ${currentPage === 1 ? 'disabled' : ''}>Précédent</button>
+        <ul class="pagination">
+            <li class="${currentPage === 1 ? 'disabled' : ''}">
+                <a href="#" data-page="prev" rel="prev">
+                    <span class="wb-inv"></span>Précédent
+                </a>
+            </li>
             ${buildPageButtons(currentPage, totalPages)}
-            <button class="page-btn" data-page="next" ${currentPage === totalPages ? 'disabled' : ''}>Suivant</button>
-        </div>
+            <li class="${currentPage === totalPages ? 'disabled' : ''}">
+                <a href="#" data-page="next" rel="next">
+                    Suivant<span class="wb-inv"></span>
+                </a>
+            </li>
+        </ul>
     </div>`;
 
     tableContainer.innerHTML = html;
 
-    // attach events for buttons
-    tableContainer.querySelectorAll('.page-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const target = btn.dataset.page;
+    // Events for buttons
+    tableContainer.querySelectorAll('.pagination a').forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const li = link.parentElement;
+            if (li.classList.contains('disabled') || li.classList.contains('active')) return;
+            
+            const target = link.dataset.page;
             if (target === 'prev' && currentPage > 1) currentPage--;
             else if (target === 'next' && currentPage < totalPages) currentPage++;
             else if (!isNaN(parseInt(target))) currentPage = parseInt(target);
@@ -1008,13 +1131,17 @@ function buildPageButtons(current, total) {
             pages.push('...');
         }
     }
+    
     return pages.map(p => {
         if (p === '...') {
-            return `<span class="page-ellipsis">…</span>`;
+            return `<li class="disabled"><span>…</span></li>`;
         }
-        const active = p === current ? 'active' : '';
-        const displayPage = formatter.format(p);  // Format for display
-        return `<button class="page-btn ${active}" data-page="${p}">${displayPage}</button>`;
+        const activeClass = p === current ? ' class="active"' : '';
+        const displayPage = formatter.format(p);
+        const screenReaderText = p === current ? 
+            `<span class="wb-inv"></span>${displayPage}` :
+            `<span class="wb-inv"></span>${displayPage}`;
+        return `<li${activeClass}><a href="#" data-page="${p}">${screenReaderText}</a></li>`;
     }).join('');
 }
 
@@ -1124,23 +1251,24 @@ async function downloadData() {
 }
 
 // Tab switching
-function switchTab(tabName) {
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('active');
+// Ensure only one tab is open at a time
+document.querySelectorAll('.wb-tabs details').forEach(tab => {
+    tab.addEventListener('toggle', function() {
+        if (this.open) {
+            // Close all other tabs
+            document.querySelectorAll('.wb-tabs details').forEach(otherTab => {
+                if (otherTab !== this) otherTab.open = false;
+            });
+            
+            // Handle tab-specific updates
+            if (this.id === 'chart-tab') {
+                setTimeout(() => resizeChart(), 100);
+            } else if (this.id === 'api-tab') {
+                updateApiUrls();
+            }
+        }
     });
-    document.querySelectorAll('.tab-pane').forEach(pane => {
-        pane.classList.remove('active');
-    });
-    
-    document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
-    document.getElementById(`${tabName}-tab`).classList.add('active');
-    
-    if (tabName === 'chart') {
-        resizeChart();
-    } else if (tabName === 'api') {
-        updateApiUrls();
-    }
-}
+});
 
 // =============================================================================
 // ## MAIN DATA LOADING WORKFLOW
@@ -1152,7 +1280,6 @@ let isRestricted = false;  // Track if current selection is restricted
 async function loadData() {
     const province = provinceSelect.value;
     const energyVar = energyVarSelect.value;
-    const activeTab = document.querySelector('.tab-btn.active').dataset.tab
 
     // BLOCK LARGE ONTARIO SMARTMETER DATASETS
     // --- RESTRICTION CHECK ---
@@ -1164,7 +1291,9 @@ async function loadData() {
     ];
 
     isRestricted = (province === 'Ontario' && restrictedVars.includes(energyVar));
-    if (isRestricted && activeTab !== 'api') {
+    if (isRestricted) {
+        const apiTab = document.getElementById('api-tab');
+        const isApiTabOpen = apiTab && apiTab.open;
         
         const message = '<p style="padding: 20px; color: #666;">En raison de la taille importante du fichier, cette variable n’est pas disponible en aperçu. Veuillez télécharger le fichier ou accéder aux données par l’entremise de l’IPA (voir l\'onglet IPA pour obtenir plus de renseignements).</p>';
         
