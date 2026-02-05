@@ -917,7 +917,7 @@ function renderChart(data, province, energyVar) {
         .attr('y', height + 45)
         .attr('text-anchor', 'middle')
         .attr('fill', '#333')
-        .text('Date and time');
+        .text('La date et l\'heure');
 
     g.append('text')
         .attr('transform', 'rotate(-90)')
@@ -1384,4 +1384,5 @@ document.addEventListener('DOMContentLoaded', function() {
     updateFlatpickrMinDate();    // Sets dates + constraints
     loadData();                  // Loads with dates
 });
+
 
